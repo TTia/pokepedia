@@ -56,4 +56,33 @@ class PokemonControllerTest {
         mockMvc.perform(get("/pokemon/" + longName))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void translatedEndpointReturnsOkWithCorrectJsonShape() throws Exception {
+        when(pokemonService.getTranslatedPokemon("mewtwo"))
+                .thenReturn(new PokemonResponse("mewtwo", "Created by a scientist, it was.", "rare", true));
+
+        mockMvc.perform(get("/pokemon/translated/mewtwo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("mewtwo"))
+                .andExpect(jsonPath("$.description").value("Created by a scientist, it was."))
+                .andExpect(jsonPath("$.habitat").value("rare"))
+                .andExpect(jsonPath("$.isLegendary").value(true));
+    }
+
+    @Test
+    void translatedEndpointReturnsNotFoundWhenPokemonDoesNotExist() throws Exception {
+        when(pokemonService.getTranslatedPokemon("notapokemon"))
+                .thenThrow(new PokemonNotFoundException("notapokemon"));
+
+        mockMvc.perform(get("/pokemon/translated/notapokemon"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Pokemon not found: \"notapokemon\""));
+    }
+
+    @Test
+    void translatedEndpointReturnsBadRequestForInvalidName() throws Exception {
+        mockMvc.perform(get("/pokemon/translated/<script>"))
+                .andExpect(status().isBadRequest());
+    }
 }

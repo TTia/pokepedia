@@ -1,5 +1,7 @@
 package com.ttia.pokepedia.pokemon;
 
+import com.ttia.pokepedia.funtranslations.FunTranslationsClient;
+import com.ttia.pokepedia.funtranslations.TranslationType;
 import com.ttia.pokepedia.pokeapi.PokeApiClient;
 import com.ttia.pokepedia.pokeapi.model.NamedAPIResource;
 import com.ttia.pokepedia.pokeapi.model.PokemonSpeciesDetail;
@@ -12,10 +14,14 @@ import java.util.Optional;
 @Service
 public class PokemonService {
 
-    private final PokeApiClient pokeApiClient;
+    private static final String CAVE_HABITAT = "cave";
 
-    public PokemonService(PokeApiClient pokeApiClient) {
+    private final PokeApiClient pokeApiClient;
+    private final FunTranslationsClient funTranslationsClient;
+
+    public PokemonService(PokeApiClient pokeApiClient, FunTranslationsClient funTranslationsClient) {
         this.pokeApiClient = pokeApiClient;
+        this.funTranslationsClient = funTranslationsClient;
     }
 
     public PokemonResponse getPokemon(String name) {
@@ -40,5 +46,22 @@ public class PokemonService {
                 .orElse(null);
 
         return new PokemonResponse(species.getName(), description, habitat, species.getIsLegendary());
+    }
+
+    public PokemonResponse getTranslatedPokemon(String name) {
+        PokemonResponse base = getPokemon(name);
+
+        if (base.description().isEmpty()) {
+            return base;
+        }
+
+        TranslationType type = CAVE_HABITAT.equals(base.habitat()) || base.isLegendary()
+                ? TranslationType.YODA
+                : TranslationType.SHAKESPEARE;
+
+        String description = funTranslationsClient.translate(base.description(), type)
+                .orElse(base.description());
+
+        return new PokemonResponse(base.name(), description, base.habitat(), base.isLegendary());
     }
 }

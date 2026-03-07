@@ -55,6 +55,37 @@ http http://localhost:5000/pokemon/mewtwo
 
 ### UC 2 - FunTranslation API Integration
 
+Infrastructure layer providing HTTP access to the FunTranslations API.
+Used by UC 3 to translate Pokemon descriptions into Shakespeare or Yoda style.
+
+**Endpoints:**
+
+| Translation   | URL                                                        |
+|---------------|------------------------------------------------------------|
+| Shakespeare   | `GET https://api.funtranslations.com/translate/shakespeare.json?text={text}` |
+| Yoda          | `GET https://api.funtranslations.com/translate/yoda.json?text={text}`        |
+
+**Response shape** (only `contents.translated` is consumed):
+```json
+{
+  "success": { "total": 1 },
+  "contents": {
+    "translated": "Translated text here",
+    "text": "Original text here",
+    "translation": "shakespeare"
+  }
+}
+```
+
+**Rate limits (free tier, no auth required):**
+- 5 requests/hour, 60 requests/day
+- HTTP 429 when exceeded
+
+**Design notes:**
+- Caching translated descriptions is essential given the strict rate limits
+- Any failure (HTTP errors, timeouts, 429 rate limits) must fall back silently to the standard description — no error surfaced to the caller
+- Response schema is trivial — no OpenAPI codegen needed; a minimal DTO suffices
+
 ### UC 3 - Translated Pokemon Description
 
 `GET /pokemon/translated/{name}`

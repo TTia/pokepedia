@@ -1,5 +1,7 @@
 package com.ttia.pokepedia.pokemon;
 
+import com.ttia.pokepedia.funtranslations.FunTranslationsClient;
+import com.ttia.pokepedia.funtranslations.TranslationType;
 import com.ttia.pokepedia.pokeapi.PokeApiClient;
 import com.ttia.pokepedia.pokeapi.model.NamedAPIResource;
 import com.ttia.pokepedia.pokeapi.model.PokemonSpeciesDetail;
@@ -12,9 +14,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,6 +28,9 @@ class PokemonServiceTest {
 
     @Mock
     private PokeApiClient pokeApiClient;
+
+    @Mock
+    private FunTranslationsClient funTranslationsClient;
 
     @InjectMocks
     private PokemonService pokemonService;
@@ -85,6 +94,69 @@ class PokemonServiceTest {
         assertThatThrownBy(() -> pokemonService.getPokemon("notapokemon"))
                 .isInstanceOf(PokemonNotFoundException.class)
                 .hasMessageContaining("notapokemon");
+    }
+
+    @Test
+    void translatesWithYodaForCaveHabitat() {
+        stubSpecies("zubat", false, "cave", "A common Pokemon in caves.");
+        when(funTranslationsClient.translate("A common Pokemon in caves.", TranslationType.YODA))
+                .thenReturn(Optional.of("In caves, a common Pokemon, this is."));
+
+        PokemonResponse response = pokemonService.getTranslatedPokemon("zubat");
+
+        assertThat(response.description()).isEqualTo("In caves, a common Pokemon, this is.");
+        verify(funTranslationsClient).translate("A common Pokemon in caves.", TranslationType.YODA);
+    }
+
+    @Test
+    void translatesWithYodaForLegendary() {
+        stubSpecies("mewtwo", true, "rare", "A Pokemon created by science.");
+        when(funTranslationsClient.translate("A Pokemon created by science.", TranslationType.YODA))
+                .thenReturn(Optional.of("By science, a Pokemon created was."));
+
+        PokemonResponse response = pokemonService.getTranslatedPokemon("mewtwo");
+
+        assertThat(response.description()).isEqualTo("By science, a Pokemon created was.");
+        verify(funTranslationsClient).translate("A Pokemon created by science.", TranslationType.YODA);
+    }
+
+    @Test
+    void translatesWithShakespeareForStandardPokemon() {
+        stubSpecies("pikachu", false, "forest", "An electric mouse Pokemon.");
+        when(funTranslationsClient.translate("An electric mouse Pokemon.", TranslationType.SHAKESPEARE))
+                .thenReturn(Optional.of("An electric mouse Pokemon, verily."));
+
+        PokemonResponse response = pokemonService.getTranslatedPokemon("pikachu");
+
+        assertThat(response.description()).isEqualTo("An electric mouse Pokemon, verily.");
+        verify(funTranslationsClient).translate("An electric mouse Pokemon.", TranslationType.SHAKESPEARE);
+    }
+
+    @Test
+    void fallsBackToStandardDescriptionOnTranslationFailure() {
+        stubSpecies("pikachu", false, "forest", "An electric mouse Pokemon.");
+        when(funTranslationsClient.translate(anyString(), eq(TranslationType.SHAKESPEARE)))
+                .thenReturn(Optional.empty());
+
+        PokemonResponse response = pokemonService.getTranslatedPokemon("pikachu");
+
+        assertThat(response.description()).isEqualTo("An electric mouse Pokemon.");
+    }
+
+    @Test
+    void skipsTranslationForEmptyDescription() {
+        stubSpecies("pikachu", false, "forest", "");
+
+        PokemonResponse response = pokemonService.getTranslatedPokemon("pikachu");
+
+        assertThat(response.description()).isEmpty();
+    }
+
+    private void stubSpecies(String name, boolean legendary, String habitat, String description) {
+        String lang = description.isEmpty() ? "fr" : "en";
+        PokemonSpeciesDetail species = buildSpecies(name, legendary, habitat,
+                List.of(flavorText(description.isEmpty() ? "Non-English text" : description, lang)));
+        when(pokeApiClient.getPokemonSpecies(name)).thenReturn(species);
     }
 
     private static PokemonSpeciesDetail buildSpecies(String name, boolean legendary, String habitat,

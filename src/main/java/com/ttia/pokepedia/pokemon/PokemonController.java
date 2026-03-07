@@ -37,4 +37,18 @@ public class PokemonController {
             @Pattern(regexp = "[a-zA-Z0-9-]+") @Size(max = 50) String name) {
         return pokemonService.getPokemon(name.toLowerCase());
     }
+
+    @GetMapping("/translated/{name}")
+    @Operation(
+            summary = "Get Pokemon information with translated description",
+            description = "Returns Pokemon info with a fun translation: Yoda for cave/legendary Pokemon, Shakespeare otherwise. Falls back to standard description if translation fails.")
+    @ApiResponse(responseCode = "200", description = "Pokemon found with translated description")
+    @ApiResponse(responseCode = "404", description = "Pokemon not found")
+    @ApiResponse(responseCode = "400", description = "Invalid Pokemon name")
+    public PokemonResponse getTranslatedPokemon(
+            @PathVariable
+            @Parameter(description = "Pokemon name (e.g. mewtwo, mr-mime)")
+            @Pattern(regexp = "[a-zA-Z0-9-]+") @Size(max = 50) String name) {
+        return pokemonService.getTranslatedPokemon(name.toLowerCase());
+    }
 }
