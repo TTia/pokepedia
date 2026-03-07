@@ -137,3 +137,20 @@ http http://localhost:5000/pokemon/translated/mewtwo
 
 - Dockerfile
 - Git history
+
+## Production readiness - Next steps
+Currently, the tests are run on the commit hook, but the tests are also directly invoking the API from the third-party provider.
+So, either we run a simple smoke test locally, or we create a new strategy for the full integration test against the provider.
+For instance, PokeAPI does support a self-hosted deployment.
+
+The project is lacking continuous integration and continuous deployment.
+
+The PokeAPI is now integrated using REST, but I saw that there is a GraphQL version.
+To be investigated as it could reduce the overall bandwidth and network usage.
+
+The provider's API does include rate limiting and caching. Assuming that our API will be open to the public, we should review our
+throttling strategies. Limitations on the FunTranslations API are very strict.
+
+The original content is localized, we could extend our API with localization as well.
+
+Logging and observability.
