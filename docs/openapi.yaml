@@ -1,0 +1,119 @@
+openapi: 3.1.0
+info:
+  title: Pokepedia API
+  description: A Pokedex REST API serving Pokemon info with optional fun translations
+    (Yoda/Shakespeare)
+  version: 1.0.0
+servers:
+- url: http://localhost:5050
+  description: Generated server url
+tags:
+- name: Pokemon
+  description: Pokemon information endpoints
+paths:
+  /pokemon/{name}:
+    get:
+      tags:
+      - Pokemon
+      summary: Get basic Pokemon information
+      description: "Returns name, description, habitat and legendary status for the\
+        \ given Pokemon"
+      operationId: getPokemon
+      parameters:
+      - name: name
+        in: path
+        description: "Pokemon name (e.g. mewtwo, mr-mime)"
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+          minLength: 0
+          pattern: "[a-zA-Z0-9-]+"
+      responses:
+        "404":
+          description: Pokemon not found
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        "400":
+          description: Invalid Pokemon name
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        "200":
+          description: Pokemon found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PokemonResponse"
+  /pokemon/translated/{name}:
+    get:
+      tags:
+      - Pokemon
+      summary: Get Pokemon information with translated description
+      description: "Returns Pokemon info with a fun translation: Yoda for cave/legendary\
+        \ Pokemon, Shakespeare otherwise. Falls back to standard description if translation\
+        \ fails."
+      operationId: getTranslatedPokemon
+      parameters:
+      - name: name
+        in: path
+        description: "Pokemon name (e.g. mewtwo, mr-mime)"
+        required: true
+        schema:
+          type: string
+          maxLength: 50
+          minLength: 0
+          pattern: "[a-zA-Z0-9-]+"
+      responses:
+        "404":
+          description: Pokemon not found
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        "400":
+          description: Invalid Pokemon name
+          content:
+            '*/*':
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        "200":
+          description: Pokemon found with translated description
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PokemonResponse"
+components:
+  schemas:
+    PokemonResponse:
+      type: object
+      description: Pokemon information
+      properties:
+        name:
+          type: string
+          description: Pokemon name
+          example: mewtwo
+        description:
+          type: string
+          description: Pokemon description from the Pokedex
+          example: It was created by a scientist after years of horrific gene splicing
+            and DNA engineering experiments.
+        habitat:
+          type: string
+          description: Pokemon habitat
+          example: rare
+        isLegendary:
+          type: boolean
+          description: Whether the Pokemon is legendary
+          example: true
