@@ -21,6 +21,12 @@
 
 REST API Pokedex that returns Pokemon information, backed by existing public APIs.
 
+### PokeAPI HTTP Client & Models
+
+Infrastructure layer providing HTTP access to PokeAPI's `pokemon-species` endpoint.
+Models generated from a trimmed OpenAPI spec via `openapi-generator-maven-plugin`.
+Responses cached with Caffeine (max 500 entries, 1h TTL) to comply with PokeAPI fair-use policy.
+
 ### UC 1 - Basic Pokemon Information
 
 `GET /pokemon/{name}`
@@ -47,7 +53,9 @@ http http://localhost:5000/pokemon/mewtwo
 }
 ```
 
-### UC 2 - Translated Pokemon Description
+### UC 2 - FunTranslation API Integration
+
+### UC 3 - Translated Pokemon Description
 
 `GET /pokemon/translated/{name}`
 

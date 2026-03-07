@@ -1,0 +1,59 @@
+openapi: 3.0.3
+info:
+  title: PokeAPI - Pokemon Species (trimmed)
+  description: Minimal spec for model generation. Only the fields Pokepedia needs.
+  version: "1.0.0"
+
+paths:
+  /api/v2/pokemon-species/{name}:
+    get:
+      operationId: getPokemonSpecies
+      summary: Get a Pokemon species by name
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pokemon species detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PokemonSpeciesDetail"
+
+components:
+  schemas:
+    PokemonSpeciesDetail:
+      type: object
+      properties:
+        name:
+          type: string
+        is_legendary:
+          type: boolean
+        habitat:
+          $ref: "#/components/schemas/NamedAPIResource"
+          nullable: true
+        flavor_text_entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PokemonSpeciesFlavorText"
+
+    NamedAPIResource:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+
+    PokemonSpeciesFlavorText:
+      type: object
+      properties:
+        flavor_text:
+          type: string
+        language:
+          $ref: "#/components/schemas/NamedAPIResource"
+        version:
+          $ref: "#/components/schemas/NamedAPIResource"
