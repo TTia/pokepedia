@@ -139,18 +139,38 @@ http http://localhost:5000/pokemon/translated/mewtwo
 - Git history
 
 ## Production readiness - Next steps
-Currently, the tests are run on the commit hook, but the tests are also directly invoking the API from the third-party provider.
-So, either we run a simple smoke test locally, or we create a new strategy for the full integration test against the provider.
-For instance, PokeAPI does support a self-hosted deployment.
 
-The project is lacking continuous integration and continuous deployment.
+I would like to categorise the improvements as mentioned in https://leaddev.com/software-quality/four-pillars-code-health.
 
-The PokeAPI is now integrated using REST, but I saw that there is a GraphQL version.
-To be investigated as it could reduce the overall bandwidth and network usage.
+### Pillar 1 / Automation — increase delivery lifecycle
+CI/CD pipeline. The project currently has no continuous integration or deployment. Set up a pipeline (e.g., GitHub Actions) that runs on every push with at least two stages: a fast gate (compilation, unit tests with mocked HTTP clients) and a slow gate (integration smoke tests against either a self-hosted PokeAPI instance or a contract-test double).
 
-The provider's API does include rate limiting and caching. Assuming that our API will be open to the public, we should review our
-throttling strategies. Limitations on the FunTranslations API are very strict.
+Decouple commit hooks from live APIs. Tests on the pre-commit hook currently invoke third-party providers directly. Move those to the CI slow gate and restrict the hook to offline checks only (mvn install + unit tests with API stubs).
+PokemonControllerTest are not hermetic as they actually test against the PokeAPI, not fully self-contained. PokemonControllerIntegrationTest mixes stubbed tests with real scenarios.
 
-The original content is localized, we could extend our API with localization as well.
+Deploy via CD using the Dockerfile.
 
-Logging and observability.
+### Pillar 2 / Insights — observability and control
+Structured logging: apply log lines with structured logging (i.e., APM with MDC Logging using Json). Include correlation IDs across the chained PokeAPI -> FunTranslations call sequence so a single request can be traced end to end.
+
+Health and readiness endpoints. Expose Spring Boot Actuator /actuator/health (with downstream checks for third parties' API for reachability) and /actuator/info (build version, commit SHA).
+
+### Pillar 3 / Maintainability — refactoring, testing, documentation
+Prioritisation of the test suite: unit tests with stubs, integration tests, and contract tests against PokeAPI and FunTranslations APIs to avoid response-shape drift. High-value tests should cover the translation selection logic (cave/legendary -> Yoda, else Shakespeare) - which is the "core" business logic at the moment.
+
+Publish the Pokepedia API's own OpenAPI spec. Version it from day one (/v1/pokemon/...) to better handle breaking changes.
+
+PokeAPI offers a GraphQL endpoint. Evaluate switching to it for the species query — it could reduce payload size significantly since only name, flavor_text_entries, habitat and is_legendary are consumed today.
+
+Extract a reusable pattern for calling rate-limited third-party APIs (backoff, circuit-breaking, fallback). This avoids re-inventing the strategy when future integrations are added.
+
+Instead of invoking a public API, we could deploy our own instance of PokeApi (various deployment options available: from static-data or Django BE self-hosted). Replace FunTranslations API or question the UC (brainstorming here: https://pokeapi.co/api/v2/pokemon-species/?limit=0 returns 1025 unique pokemon, for the sake of the exercise, we could extend the static json data with one-time generated "fun translations").
+
+The PokeAPI flavour text is already localised. Extend the Pokedex API with an Accept-Language header to serve descriptions in the caller's language, falling back to English.
+
+### Pillar 4 / Security
+Input validation. Already we are sanitizing and validating the input, but requesting data against PokeApi is a "costly" operation. Assuming that the Pokemon population changes rarely and we really want to use the public PokeAPI, we could generate a bloom filter (brainstoming here) to avoid pulling data from PokeApi with a reasonable degree of confidence to hit an existing Pokemon.
+
+Apply rate limits on the public-facing endpoints to protect both the service and the upstream providers from abuse.
+
+Require TLS termination at the load balancer or reverse proxy.

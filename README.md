@@ -71,3 +71,7 @@ POKEAPI_BASE_URL=http://localhost:8080 docker compose up --build
 ```bash
 ./mvnw test
 ```
+
+## Production readiness
+
+Documented in [Pokepedia-api-prd - Production Readiness Next-steps](https://github.com/TTia/pokepedia/blob/main/docs/pokepedia-api-prd.md#production-readiness---next-steps)
